@@ -10,7 +10,7 @@ get_header(); ?>
             'post_type' => 'post',
             'order' => 'ASC',
             'orderby' => 'menu_order',
-            'posts_per_page' => -1
+            'posts_per_page' => 3
         );
         $the_query = new WP_Query($arg);
         if ($the_query->have_posts()) : ?>
@@ -31,11 +31,12 @@ get_header(); ?>
         <?php endif;
         wp_reset_query(); ?>
 
-        <?php $arg = array(
+        <?php $posts_per_page = get_option('posts_per_page');
+        $arg = array(
             'post_type' => 'property',
             'order' => 'ASC',
             'orderby' => 'menu_order',
-            'posts_per_page' => -1
+            'posts_per_page' => $posts_per_page,
         );
         $the_query = new WP_Query($arg);
         if ($the_query->have_posts()) : ?>
@@ -53,11 +54,26 @@ get_header(); ?>
                         <?php echo do_shortcode('[houses_search]'); ?>
                     </div>
 
-                    <div class="row p-3">
-                        <?php while ($the_query->have_posts()) :
-                            $the_query->the_post(); ?>
-                            <?php get_template_part('parts/loop', 'property'); ?>
-                        <?php endwhile; ?>
+                    <div class="js-property-box">
+                        <div class="row p-3">
+                            <?php while ($the_query->have_posts()) :
+                                $the_query->the_post(); ?>
+                                <?php get_template_part('parts/loop', 'property'); ?>
+                            <?php endwhile; ?>
+                        </div>
+
+                        <?php $max_num_pages = $the_query->max_num_pages;
+                        if ($max_num_pages > 1) : ?>
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    <?php for ($i = 1; $i <= $max_num_pages; $i++) : ?>
+                                        <li class="page-item">
+                                            <a class="js-page-link js-ajax-request page-link <?php echo $i == $page_number ? 'active' : '';?>" href="#" data-page="<?php echo $i; ?>"><?php echo $i; ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                </ul>
+                            </nav>
+                        <?php endif; ?>
                     </div>
                 </div>
             </section>

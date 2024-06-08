@@ -43,6 +43,17 @@ function theme_enqueue_styles() {
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
 		wp_enqueue_script( 'comment-reply' );
 	}
+    wp_enqueue_script('main.js', get_stylesheet_directory_uri() . '/js/main.js', array('jquery'), '1.0.0', true);
+
+    wp_localize_script(
+        'main.js',
+        'ajax_object',
+        [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('project_nonce'),
+            'posts_per_page' => get_option('posts_per_page'),
+        ]
+    );
 }
 add_action( 'wp_enqueue_scripts', 'theme_enqueue_styles' );
 
@@ -215,5 +226,60 @@ function add_property_taxonomies() {
 
     register_taxonomy( 'property-borough', 'property', $reportcategoriesargs );
 }
-
 include_once get_stylesheet_directory() .'/inc/shortcodes.php';
+
+//Age Control using Ajax
+add_action('wp_ajax_search_request', 'search_request_callback');
+add_action('wp_ajax_nopriv_search_request', 'search_request_callback');
+
+function search_request_callback()
+{
+    check_ajax_referer('project_nonce', 'nonce');
+    $response = array();
+
+    $search_string = $_POST['search_string'];
+    $posts_per_page = $_POST['posts_per_page'];
+    $page_number = $_POST['page_number'];
+    $arg = array(
+        'post_type' => 'property',
+        'order' => 'ASC',
+        'orderby' => 'menu_order',
+        'posts_per_page' => $posts_per_page,
+        'post_status'=>'publish',
+        's' => $search_string,
+        'paged' => $page_number
+    );
+    $the_query = new WP_Query($arg);
+
+    if($the_query->have_posts()) :
+        ob_start(); ?>
+        <div class="row p-3">
+            <?php while ($the_query->have_posts()) :
+                $the_query->the_post(); ?>
+                <?php get_template_part('parts/loop', 'property');?>
+            <?php endwhile; ?>
+        </div>
+
+        <?php $max_num_pages = $the_query->max_num_pages;
+        if ($max_num_pages > 1) : ?>
+            <nav>
+                <ul class="pagination justify-content-center">
+                    <?php for ($i = 1; $i <= $max_num_pages; $i++) : ?>
+                        <li class="page-item">
+                            <a class="js-page-link js-ajax-request page-link <?php echo $i == $page_number ? 'active' : '';?>" href="#" data-page="<?php echo $i; ?>"><?php echo $i; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </nav>
+        <?php endif; ?>
+    <?php else : ?>
+        <h5><?php echo __("We couldn't find anything for", 'default') . $search_string; ?></h5>
+    <?php endif;
+    wp_reset_query();
+    $output = ob_get_contents();
+    ob_end_clean();
+
+    $response['content'] = $output;
+    wp_send_json($response);
+    wp_die();
+}

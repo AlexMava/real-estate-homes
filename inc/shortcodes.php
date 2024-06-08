@@ -29,7 +29,7 @@ function houses_search_callback()
             <input type="text" class="form-control" id="inputSearch" placeholder="Search">
         </div>
 
-        <button type="submit" class="btn btn-primary mx-2">Go</button>
+        <button class="js-ajax-request btn btn-primary mx-2">Go</button>
     </form>
 
     <?php $output = ob_get_contents();
